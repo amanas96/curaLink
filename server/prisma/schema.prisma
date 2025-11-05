@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  password          String
+  role              UserRole           @default(PATIENT)
+  createdAt         DateTime           @default(now())
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  favorites         Favorite[]
+  patientProfile    PatientProfile?
+  researcherProfile ResearcherProfile?
+  ownedTrials       ClinicalTrial[]
+}
+
+model PatientProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  conditions String[] @default([])
+  location   String?
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model ResearcherProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  specialties         String[] @default([])
+  researchInterests   String[] @default([])
+  availableForMeeting Boolean  @default(false)
+  user                User     @relation(fields: [userId], references: [id])
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  entityId   String
+  entityType String
+  title      String
+  summary    String?
+  url        String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+// Add to your Prisma schema
+model TrialSummary {
+  id        String   @id @default(cuid())
+  nctId     String   @unique
+  aiSummary String   @db.Text  
+  createdAt DateTime @default(now())
+}
+
+model ClinicalTrial {
+  id    String @id @default(cuid())
+  nctId String @unique // The official NCT ID from ClinicalTrials.gov
+
+  // Trial details
+  title       String   @db.Text
+  description String   @db.Text
+  status      String   // e.g., "RECRUITING", "COMPLETED"
+  phase       String   // e.g., "Phase 1", "Phase 2"
+  eligibility String   @db.Text
+  
+  // Ownership
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  PATIENT
+  RESEARCHER
+}
