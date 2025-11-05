@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 8000;
 
 app.use(
   cors({
-    origin: ["https://cura-link-lovat.vercel.app"],
+    origin: ["https://cura-link-lovat.vercel.app", "http://localhost:3000,"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })

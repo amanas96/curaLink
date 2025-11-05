@@ -34,11 +34,16 @@ router.post("/register", async (req, res) => {
     });
     if (user.role === UserRole.PATIENT) {
       await prisma.patientProfile.create({
-        data: { userId: user.id },
+        data: { userId: user.id, conditions: [], location: "" },
       });
     } else if (user.role === UserRole.RESEARCHER) {
       await prisma.researcherProfile.create({
-        data: { userId: user.id },
+        data: {
+          userId: user.id,
+          specialties: [],
+          researchInterests: [],
+          availableForMeeting: false,
+        },
       });
     }
     //// token
@@ -114,12 +119,10 @@ router.post("/forgot-password", async (req, res) => {
     if (!user) {
       // Security: Don't reveal if an email exists.
       // Send a 200 OK response in both cases.
-      return res
-        .status(200)
-        .json({
-          message:
-            "If an account with this email exists, a reset link has been sent.",
-        });
+      return res.status(200).json({
+        message:
+          "If an account with this email exists, a reset link has been sent.",
+      });
     }
 
     // 1. Generate a secure token
@@ -153,12 +156,10 @@ router.post("/forgot-password", async (req, res) => {
              <a href="${resetUrl}" target="_blank">${resetUrl}</a>`,
     });
 
-    res
-      .status(200)
-      .json({
-        message:
-          "If an account with this email exists, a reset link has been sent.",
-      });
+    res.status(200).json({
+      message:
+        "If an account with this email exists, a reset link has been sent.",
+    });
   } catch (error) {
     console.error("Forgot password error:", error);
     res.status(500).json({ message: "Internal server error" });

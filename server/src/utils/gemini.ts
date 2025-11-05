@@ -45,10 +45,8 @@ async function getModel() {
     }
   }
 
-  // If all models fail, throw an error
-  throw new Error(
-    "No available Gemini models found. Please check your API key and quota."
-  );
+  console.warn("⚠️ No Gemini models available — using mock AI fallback.");
+  return null;
 }
 
 export const geminiModelPromise = getModel();
