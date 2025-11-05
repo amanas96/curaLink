@@ -21,7 +21,7 @@ const PatientProfileForm = ({ profile }: { profile: any }) => {
     setMessage(null);
     try {
       await api.put("/patient/me/profile", {
-        conditions: conditions.split(",").map((c) => c.trim()),
+        conditions: conditions.split(",").map((c: string) => c.trim()),
         location,
       });
       setMessage("✅ Profile updated successfully!");
@@ -107,8 +107,10 @@ const ResearcherProfileForm = ({ profile }: { profile: any }) => {
     setMessage(null);
     try {
       await api.put("/researcher/me/profile", {
-        specialties: specialties.split(",").map((s) => s.trim()),
-        researchInterests: researchInterests.split(",").map((s) => s.trim()),
+        specialties: specialties.split(",").map((s: string) => s.trim()),
+        researchInterests: researchInterests
+          .split(",")
+          .map((s: string) => s.trim()),
         availableForMeeting,
       });
       setMessage("✅ Profile updated successfully!");
