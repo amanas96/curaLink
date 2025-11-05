@@ -1,67 +1,7 @@
-// src/routes/ai.ts
 import { Router, type Request, type Response } from "express";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { geminiModelPromise } from "../utils/gemini.js";
 
 const router = Router();
-
-let model: any = null;
-let modelInitialized = false;
-let modelError: string | null = null;
-
-// Initialize model once at startup
-async function initGemini() {
-  // Return cached model if already initialized
-  if (modelInitialized) return model;
-
-  try {
-    if (!process.env.GEMINI_API_KEY) {
-      console.error("❌ GEMINI_API_KEY not found in environment");
-      modelError = "API key not configured";
-      modelInitialized = true;
-      return null;
-    }
-
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const modelNames = [
-      "gemini-2.0-flash-exp",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
-      "gemini-pro",
-    ];
-
-    for (const modelName of modelNames) {
-      try {
-        console.log(`🔍 Trying model: ${modelName}`);
-        const testModel = genAI.getGenerativeModel({ model: modelName });
-
-        // Test with a minimal prompt
-        await testModel.generateContent("test");
-
-        model = testModel;
-        modelInitialized = true;
-        console.log(`✅ Using model: ${modelName}`);
-        return model;
-      } catch (err: any) {
-        console.log(
-          `❌ ${modelName} not available: ${err.message || err.status}`
-        );
-      }
-    }
-
-    console.error("❌ No Gemini models available");
-    modelError = "No models available";
-    modelInitialized = true;
-    return null;
-  } catch (error: any) {
-    console.error("❌ Failed to initialize Gemini:", error);
-    modelError = error.message || "Initialization failed";
-    modelInitialized = true;
-    return null;
-  }
-}
-
-// Initialize on module load
-initGemini().catch((err) => console.error("Startup init error:", err));
 
 /* ---------------------- PARSE CONDITION ---------------------- */
 router.post("/parse-condition", async (req: Request, res: Response) => {
@@ -78,7 +18,7 @@ router.post("/parse-condition", async (req: Request, res: Response) => {
     console.log("📝 Text to parse:", text);
 
     // Try to get the model
-    const geminiModel = await initGemini();
+    const geminiModel = await geminiModelPromise;
 
     // If no model available, return mock data immediately
     if (!geminiModel) {
@@ -99,17 +39,11 @@ router.post("/parse-condition", async (req: Request, res: Response) => {
 
     console.log("🤖 Calling Gemini API...");
 
-    // Try generating AI response with timeout
+    // Try generating AI response
     let aiResponseText = "";
     try {
-      const result = await Promise.race([
-        geminiModel.generateContent(prompt),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 10000)
-        ),
-      ]);
-
-      aiResponseText = (result as any).response.text();
+      const result = await geminiModel.generateContent(prompt);
+      aiResponseText = result.response.text();
       console.log("✅ Gemini response:", aiResponseText);
     } catch (apiError: any) {
       console.log("⚠️ Gemini API failed:", apiError.message);
@@ -160,10 +94,10 @@ router.post("/summarize", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Text is required" });
     }
 
-    const geminiModel = await initGemini();
+    const geminiModel = await geminiModelPromise;
 
     if (!geminiModel) {
-      console.log("⚠️ Gemini quota expired, using mock summary");
+      console.log("⚠️ Gemini unavailable, using mock summary");
       return res.status(200).json({
         summary:
           "This clinical trial focuses on testing a new therapy. Participants with relevant conditions may benefit. Please consult your doctor before joining.",
@@ -183,14 +117,8 @@ router.post("/summarize", async (req: Request, res: Response) => {
 
     let aiSummary = "";
     try {
-      const result = await Promise.race([
-        geminiModel.generateContent(prompt),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 10000)
-        ),
-      ]);
-
-      aiSummary = (result as any).response.text();
+      const result = await geminiModel.generateContent(prompt);
+      aiSummary = result.response.text();
       console.log("✅ Summary generated");
     } catch (error: any) {
       console.log("⚠️ Gemini summary failed:", error.message);
