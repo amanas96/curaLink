@@ -25,11 +25,17 @@ const PORT = process.env.PORT || 8000;
 
 app.use(
   cors({
-    origin: ["https://cura-link-lovat.vercel.app", "http://localhost:3000,"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: [
+      "http://localhost:3000", // local frontend
+      "https://cura-link-lovat.vercel.app", // main Vercel domain
+      /\.vercel\.app$/, // ✅ allows all preview deployments like cura-link-git-main-...
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+//app.options("*", cors());
 app.use(express.json());
 
 // --- 3. A simple test route ---

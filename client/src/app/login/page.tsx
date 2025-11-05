@@ -1,55 +1,58 @@
-// client/app/login/page.tsx
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation"; // Use 'next/navigation' for App Router
-import { api } from "../../../lib/api"; // Your API client
-import { useAuth } from "../../../context/authContext"; // Your Auth hook
+import { useRouter } from "next/navigation";
+import { api } from "../../../lib/api";
+import { useAuth } from "../../../context/authContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth(); // Get the login function from your context
+  const [loading, setLoading] = useState(false); // ✅ Added missing state
+  const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     try {
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-      });
-
-      // 2. If successful, get the token
+      // 1️⃣ Send login request
+      const response = await api.post("/auth/login", { email, password });
       const { token, user } = response.data;
 
-      login(token);
+      // 2️⃣ Instant login (fetch user right away)
+      await login(token);
+
+      // 3️⃣ Redirect based on role
       if (user.role === "RESEARCHER") {
         router.replace("/researcher-dashboard");
       } else {
         router.replace("/dashboard");
       }
-
-      // 4. Redirect to the dashboard
     } catch (err: any) {
-      // 4. Handle errors
-      if (err.response && err.response.data && err.response.data.message) {
+      console.error("Login error:", err);
+      if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
         setError("An unexpected error occurred. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-900">
-          Login to CuraLink
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-2xl shadow-xl border border-gray-100">
+        <h2 className="text-3xl font-bold text-center text-gray-900">
+          Welcome Back
         </h2>
+        <p className="text-center text-gray-500 text-sm">
+          Login to continue to <span className="font-semibold">CuraLink</span>
+        </p>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
@@ -63,7 +66,6 @@ export default function LoginPage() {
               id="email"
               name="email"
               type="email"
-              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -82,7 +84,6 @@ export default function LoginPage() {
               id="password"
               name="password"
               type="password"
-              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -90,17 +91,36 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+          {error && (
+            <p className="text-sm text-center text-red-600 bg-red-50 py-2 rounded-md">
+              {error}
+            </p>
+          )}
 
           <div>
             <button
               type="submit"
-              className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={loading}
+              className={`w-full px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              }`}
             >
-              Sign in
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </div>
         </form>
+
+        <p className="text-sm text-center text-gray-600">
+          Don’t have an account?{" "}
+          <a
+            href="/register"
+            className="font-semibold text-indigo-600 hover:underline"
+          >
+            Register
+          </a>
+        </p>
       </div>
     </div>
   );
