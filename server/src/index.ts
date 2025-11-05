@@ -23,7 +23,13 @@ const PORT = process.env.PORT || 8000;
 
 // --- 2. Middleware ---
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["https://cura-link-lovat.vercel.app"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // --- 3. A simple test route ---
